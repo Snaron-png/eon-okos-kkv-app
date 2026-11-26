@@ -1,1 +1,0 @@
-# eon-okos-kkv-app
