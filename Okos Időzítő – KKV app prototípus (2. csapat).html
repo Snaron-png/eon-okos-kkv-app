@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Okos Időzítő – KKV app prototípus (2. csapat)</title>
+<style>
+:root{
+  --red:#EA1C0A; --red-d:#B8170A; --teal:#1EA2B1; --teal-l:#E6F5F7;
+  --ink:#1B1B1F; --ink2:#5A5A66; --line:#E4E4EA; --bg:#F4F4F7; --card:#fff;
+  --good:#1F8A4C; --good-l:#E5F4EB; --mid:#B7791F; --mid-l:#FBF1DF; --bad:#C62D1F; --bad-l:#FCE7E4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;background:#E9E9EE;color:var(--ink);min-height:100vh;display:flex;gap:40px;justify-content:center;align-items:flex-start;padding:32px 20px}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+/* ---------- presenter panel ---------- */
+.panel{width:330px;position:sticky;top:32px}
+.panel h1{font-size:22px;line-height:1.2;margin-bottom:6px}
+.panel .sub{color:var(--ink2);font-size:14px;margin-bottom:22px;line-height:1.45}
+.steps{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:22px}
+.steps button{width:100%;text-align:left;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid var(--line);display:flex;gap:10px;align-items:center;font-size:14px}
+.steps button:hover{border-color:var(--red)}
+.steps button.on{border-color:var(--red);box-shadow:0 0 0 2px rgba(234,28,10,.12)}
+.steps .n{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.steps small{display:block;color:var(--ink2);font-size:12px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:10px}
+.note{font-size:12px;color:var(--ink2);line-height:1.5;border-top:1px solid #d6d6de;padding-top:12px}
+/* ---------- phone ---------- */
+.phone{width:390px;height:844px;background:var(--bg);border-radius:46px;border:10px solid #111;position:relative;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.25);flex:none}
+.statusbar{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:14px;font-weight:600;position:absolute;top:0;left:0;right:0;z-index:5}
+.screen{position:absolute;inset:0;padding-top:44px;display:none;flex-direction:column}
+.screen.on{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:8px 16px 96px}
+.scroll::-webkit-scrollbar{width:0}
+.top{display:flex;align-items:center;gap:10px;padding:6px 16px 10px}
+.top h2{font-size:18px;flex:1}
+.back{width:34px;height:34px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:18px;border:1px solid var(--line)}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid var(--line)}
+.card h3{font-size:15px;margin-bottom:6px}
+.muted{color:var(--ink2);font-size:13px;line-height:1.45}
+.big{font-size:28px;font-weight:750;letter-spacing:-.5px}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;background:var(--red);color:#fff;font-weight:650;font-size:15px;text-align:center;margin-top:12px}
+.btn:hover{background:var(--red-d)}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{display:inline-block;width:auto;padding:9px 14px;font-size:14px;margin-top:10px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:3px 7px;border-radius:6px}
+.t-fact{background:#EDEDF2;color:#3A3A44}
+.t-est{background:var(--mid-l);color:#8A5A10}
+.t-rec{background:var(--teal-l);color:#0E6F7A}
+.t-act{background:var(--good-l);color:var(--good)}
+.pill{font-size:12px;font-weight:650;padding:4px 9px;border-radius:20px}
+.p-good{background:var(--good-l);color:var(--good)} .p-bad{background:var(--bad-l);color:var(--bad)} .p-mid{background:var(--mid-l);color:#8A5A10}
+/* zone bar */
+.zbar{display:flex;height:30px;border-radius:8px;overflow:hidden;position:relative;margin:10px 0 4px}
+.z{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.z.g{background:var(--good)} .z.b{background:repeating-linear-gradient(135deg,var(--bad) 0 6px,#D9473A 6px 12px)}
+.hours{display:flex;justify-content:space-between;font-size:10px;color:var(--ink2)}
+.hx{display:block;position:relative;height:14px}.hx span{position:absolute;transform:translateX(-50%)}.hx span:first-child{transform:none}.hx span:last-child{transform:translateX(-100%)}
+.marker{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--ink);border-radius:2px}
+.marker::after{content:attr(data-l);position:absolute;top:-16px;left:-14px;font-size:10px;font-weight:700;white-space:nowrap}
+.task{position:absolute;top:34px;height:18px;overflow:visible;border-radius:5px;background:var(--ink);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;white-space:nowrap}
+.task.new{background:var(--teal)}
+/* nav */
+.nav{position:absolute;bottom:0;left:0;right:0;height:78px;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 4px 18px;z-index:4}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--ink2);width:72px}
+.nav button .i{font-size:19px;line-height:1}
+.nav button.on{color:var(--red);font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block}
+/* lock */
+#s-lock{background:linear-gradient(160deg,#3A1C1A,#7A2A18 45%,#C2501F);color:#fff;padding-top:44px}
+.lock-time{text-align:center;margin-top:40px}
+.lock-time .d{font-size:16px;opacity:.85}
+.lock-time .t{font-size:84px;font-weight:300;letter-spacing:-2px}
+.notif{margin:40px 12px 0;background:rgba(255,255,255,.92);color:var(--ink);border-radius:20px;padding:14px 14px 12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.notif .app{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.appicon{width:22px;height:22px;border-radius:6px;background:var(--red);color:#fff;font-weight:800;font-size:11px;display:grid;place-items:center}
+.notif b{font-size:15px;display:block;margin-bottom:2px}
+.notif p{font-size:14px;line-height:1.4}
+.nact{display:flex;gap:8px;margin-top:10px}
+.nact button{flex:1;padding:10px;border-radius:12px;background:#EDEDF2;font-weight:600;font-size:14px}
+.nact button.pri{background:var(--red);color:#fff}
+/* options */
+.opt{display:block;border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;background:#fff;cursor:pointer;text-align:left;width:100%}
+.opt.sel{border-color:var(--teal);background:#F4FBFC}
+.opt .h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:16px}
+.opt .s{font-size:13px;color:var(--ink2);margin-top:3px}
+.save{font-weight:750;color:var(--good)}
+details{margin-top:4px}
+summary{cursor:pointer;font-weight:650;font-size:14px;color:#0E6F7A;list-style:none}
+summary::-webkit-details-marker{display:none}
+.calc{font-size:13px;line-height:1.6;margin-top:8px;background:#F7F7FA;border-radius:10px;padding:10px 12px}
+.list{list-style:none}
+.list li{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;gap:8px}
+.list li:last-child{border-bottom:0}
+.sw{width:42px;height:25px;border-radius:20px;background:var(--good);position:relative;flex:none}
+.sw::after{content:"";position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:2px;right:2px}
+.sw.off{background:#C9C9D2}.sw.off::after{right:auto;left:2px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.chip{font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:#fff}
+.chip.on{border-color:var(--teal);background:var(--teal-l);color:#0E6F7A;font-weight:650}
+.bars{display:flex;align-items:flex-end;gap:10px;height:110px;margin:12px 0 4px}
+.bars div{flex:1;background:var(--good);border-radius:6px 6px 0 0;position:relative}
+.bars div.e{background:repeating-linear-gradient(135deg,#E9C98E 0 5px,#F3DDB5 5px 10px)}
+.bars span{position:absolute;top:-17px;width:100%;text-align:center;font-size:10px;font-weight:700}
+.check{width:76px;height:76px;border-radius:50%;background:var(--good);color:#fff;font-size:40px;display:grid;place-items:center;margin:30px auto 16px}
+.center{text-align:center}
+.banner{background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;font-size:13px;margin-bottom:12px;line-height:1.45}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--ink2);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.spinner{width:46px;height:46px;border:5px solid #eee;border-top-color:var(--red);border-radius:50%;animation:s 0.8s linear infinite;margin:60px auto 16px}
+@keyframes s{to{transform:rotate(360deg)}}
+.proto-label{position:absolute;bottom:84px;left:0;right:0;text-align:center;font-size:10px;color:#9a9aa6;pointer-events:none}
+/* ---------- wireframe mode ---------- */
+body.wf .phone{filter:grayscale(1)}
+body.wf .phone .card, body.wf .phone .opt{border:1.5px dashed #888;box-shadow:none}
+body.wf .phone .big, body.wf .phone b, body.wf .phone h3{font-family:"DejaVu Sans Mono","Courier New",monospace}
+body.wf #s-lock{background:#999}
+@media (max-width:820px){.panel{display:none}body{padding:0;background:var(--bg)}.phone{border:0;border-radius:0;width:100vw;height:100vh}}
+</style>
+</head>
+<body>
+
+<aside class="panel">
+  <h1>Okos Időzítő</h1>
+  <p class="sub">E.ON KKV app – koncepció prototípus · 2. csapat, Corvinus<br>Anna, a Kovács Pékség operatív vezetője átidőzít egy nagy sütést, követi a megtakarítást, és kifizeti a számlát.</p>
+  <ol class="steps" id="steps">
+    <li><button data-go="s-lock"><span class="n">1</span><span>Észlelés<small>Push értesítés előző este 18:00</small></span></button></li>
+    <li><button data-go="s-home"><span class="n">2</span><span>Megértés<small>Kezdőlap: most, holnap, teendő</small></span></button></li>
+    <li><button data-go="s-day"><span class="n">2b</span><span>Árnaptár<small>Zónák + tervezett feladat</small></span></button></li>
+    <li><button data-go="s-plan"><span class="n">3</span><span>Döntés<small>3 opció, becsült megtakarítás</small></span></button></li>
+    <li><button data-go="s-confirm"><span class="n">4</span><span>Cselekvés<small>Átidőzítve, emlékeztető beállítva</small></span></button></li>
+    <li><button data-go="s-save"><span class="n">5</span><span>Visszajelzés<small>Tényleges megtakarítás (D+1)</small></span></button></li>
+    <li><button data-go="s-bills"><span class="n">6</span><span>Számla<small>Nyitott számla, előrejelzés</small></span></button></li>
+    <li><button data-go="s-pay"><span class="n">7</span><span>Fizetés<small>Összeg, határidő, visszaigazolás</small></span></button></li>
+    <li><button data-go="s-settings"><span class="n">⚙</span><span>Kontroll<small>Értesítési beállítások</small></span></button></li>
+  </ol>
+  <label class="toggle"><input type="checkbox" id="wf"> Wireframe nézet (low-fi)</label>
+  <p class="note">A prototípus a teljes kulcsfolyamatot végigviszi, a képernyők elemei kattinthatók. Az árak és összegek illusztratívak; a zónaidők az E.ON Ritmus tarifát követik (6–17 és 22–6 kedvező, 17–22 drága). Jelölések: <b>TÉNY</b> = mért vagy szerződéses adat, <b>BECSLÉS</b> = számított előrejelzés, <b>JAVASLAT</b> = az app ajánlása.</p>
+</aside>
+
+<div class="phone" id="phone">
+  <div class="statusbar" id="sb"><span id="clock">18:00</span><span>▮▮▮ 5G ▭</span></div>
+
+  <!-- 1 LOCK / PUSH -->
+  <section class="screen" id="s-lock">
+    <div class="lock-time"><div class="d">szerda, november 25.</div><div class="t">18:00</div></div>
+    <div class="notif">
+      <div class="app"><span class="appicon">E</span> E.ON Üzleti · most</div>
+      <b>Holnapi bejgli-sütés: 3 óra csúcsidőbe esik</b>
+      <p>15–20 óra helyett 11 órai kezdéssel kb. <b style="display:inline">2 800 Ft</b>-ot spórolhatsz. Egy érintéssel átidőzítheted.</p>
+      <div class="nact"><button onclick="go('s-later')">Később</button><button class="pri" onclick="go('s-plan')">Megnézem</button></div>
+    </div>
+    <p class="center" style="margin-top:22px;font-size:12px;opacity:.8">Ma 1/2 push · csak akkor jelzünk, ha ≥ 1 000 Ft a tét</p>
+  </section>
+
+  <section class="screen" id="s-later">
+    <div class="lock-time"><div class="d">szerda, november 25.</div><div class="t">18:00</div></div>
+    <div class="notif"><div class="app"><span class="appicon">E</span> E.ON Üzleti</div><b>Rendben, ma 20:00-kor újra szólunk</b><p>A javaslat a kezdőlapon is megtalálható a „Teendők” között.</p>
+    <div class="nact"><button class="pri" onclick="go('s-home')">Kezdőlap</button></div></div>
+  </section>
+
+  <!-- 2 HOME -->
+  <section class="screen" id="s-home">
+    <div class="top"><div style="flex:1"><div class="muted">Kovács Pékség Kft. · Ritmus tarifa</div><h2>Szia, Anna!</h2></div><button class="back" onclick="go('s-settings')" aria-label="Beállítások">⚙</button></div>
+    <div class="scroll">
+      <div class="card">
+        <div class="row between"><span class="muted">Most · szerda 18:00</span><span class="tag t-fact">Tény</span></div>
+        <div class="row" style="margin-top:6px"><span class="pill p-bad">● Drága sáv</span><b style="font-size:15px">22:00-ig</b></div>
+        <div class="zbar" style="margin-top:22px"><div class="z g" style="width:25%">kedvező</div><div class="z g" style="width:45.8%">kedvező</div><div class="z b" style="width:20.8%">drága</div><div class="z g" style="width:8.4%"></div><div class="marker" style="left:75%" data-l="most"></div></div>
+        <div class="hours hx"><span style="left:0">0</span><span style="left:25%">6</span><span style="left:50%">12</span><span style="left:70.8%">17</span><span style="left:91.6%">22</span><span style="left:100%">24</span></div>
+        <p class="muted" style="margin-top:8px">Este 17–22 óra között kb. 35%-kal drágább az áram. 22:00 után újra kedvező.</p>
+      </div>
+      <button class="card" style="width:100%;text-align:left;border:2px solid var(--red)" onclick="go('s-plan')" id="todo">
+        <div class="row between"><b style="font-size:15px"><span class="dot"></span>&nbsp; 1 teendő holnapra</b><span class="tag t-rec">Javaslat</span></div>
+        <p class="muted" style="margin-top:6px">A bejgli-sütés (15–20) 3 órája drága sávba esik. Átidőzítéssel <b class="save">~2 800 Ft</b> spórolható.</p>
+        <span class="btn sm">Megnézem →</span>
+      </button>
+      <div class="card" id="home-done" style="display:none;border:2px solid var(--good)">
+        <div class="row between"><b style="font-size:15px">✓ Holnap 11:00 – bejgli-sütés</b><span class="tag t-rec">Ütemezve</span></div>
+        <p class="muted" style="margin-top:6px">Emlékeztető 10:30-kor. Várható megtakarítás ~2 800 Ft (becslés).</p>
+      </div>
+      <div class="row" style="gap:12px">
+        <button class="card" style="flex:1;text-align:left" onclick="go('s-save')">
+          <div class="muted">Megtakarítás · nov.</div><div class="big" style="font-size:22px;color:var(--good)" id="home-save">7 220 Ft</div><span class="tag t-act">Tényleges</span>
+        </button>
+        <button class="card" style="flex:1;text-align:left" onclick="go('s-bills')">
+          <div class="muted">Nyitott számla</div><div class="big" style="font-size:22px" id="home-bill">486 320 Ft</div><span class="pill p-mid" id="home-bill-st">dec. 8-ig · 13 nap</span>
+        </button>
+      </div>
+      <div class="card">
+        <div class="row between"><h3>Kisebb lehetőség</h3><span class="tag t-rec">Javaslat</span></div>
+        <p class="muted">Céges autó töltése 22:00 után: heti ~600 Ft. Nem küldünk róla értesítést, mert 1 000 Ft alatt marad.</p>
+      </div>
+    </div>
+    <div class="proto-label">koncepció prototípus · illusztratív adatok</div>
+    <nav class="nav" data-active="home"></nav>
+  </section>
+
+  <!-- 2b DAY / ÁRNAPTÁR -->
+  <section class="screen" id="s-day">
+    <div class="top"><button class="back" onclick="go('s-home')">‹</button><h2>Árnaptár</h2></div>
+    <div class="scroll">
+      <div class="row" style="gap:6px;margin-bottom:12px"><span class="chip">Ma</span><span class="chip on">Holnap · csüt.</span><span class="chip">7 nap</span></div>
+      <div class="card">
+        <div class="row between"><h3>Holnap, november 26.</h3><span class="tag t-fact">Tény · tarifa</span></div>
+        <div style="position:relative;padding-bottom:30px">
+          <div class="zbar"><div class="z g" style="width:25%"></div><div class="z g" style="width:45.8%">kedvező</div><div class="z b" style="width:20.8%">drága</div><div class="z g" style="width:8.4%"></div></div>
+          <div class="task" style="left:62.5%;width:20.8%">Sütés 15–20</div>
+        </div>
+        <div class="hours hx"><span style="left:0">0</span><span style="left:25%">6</span><span style="left:50%">12</span><span style="left:70.8%">17</span><span style="left:91.6%">22</span><span style="left:100%">24</span></div>
+        <div class="legend"><span><i style="background:var(--good)"></i>kedvező</span><span><i style="background:var(--bad)"></i>drága (csíkos)</span><span><i style="background:var(--ink)"></i>tervezett feladat</span></div>
+      </div>
+      <div class="card">
+        <ul class="list">
+          <li><span>00:00–06:00</span><span class="pill p-good">Kedvező</span></li>
+          <li><span>06:00–17:00</span><span class="pill p-good">Kedvező</span></li>
+          <li><span><b>17:00–22:00</b></span><span class="pill p-bad">Drága · +35%</span></li>
+          <li><span>22:00–24:00</span><span class="pill p-good">Kedvező</span></li>
+        </ul>
+      </div>
+      <button class="card" style="width:100%;text-align:left;border:2px solid var(--red)" onclick="go('s-plan')">
+        <b>A tervezett sütés 17:00 után is fut</b><p class="muted" style="margin-top:4px">3 óra drága sávban → nézd meg a javaslatot</p>
+      </button>
+      <button class="card" style="width:100%;text-align:left" onclick="go('s-tariff')"><b>Mit jelent a Ritmus tarifa? ›</b><p class="muted">30 másodperces magyarázat üzleti nyelven</p></button>
+    </div>
+    <nav class="nav" data-active="day"></nav>
+  </section>
+
+  <!-- TARIFF -->
+  <section class="screen" id="s-tariff">
+    <div class="top"><button class="back" onclick="go('s-day')">‹</button><h2>A tarifád röviden</h2></div>
+    <div class="scroll">
+      <div class="card"><span class="tag t-fact">A te tarifád</span><h3 style="margin-top:8px;font-size:18px">E.ON Ritmus</h3>
+        <p class="muted" style="margin-top:6px">Nappal (6–17) és éjjel (22–6) olcsóbb, este (17–22) drága: a csúcsidő akár 35%-kal többe kerül.</p>
+        <div class="calc"><b>Mit jelent ez a pékségnek?</b><br>Sütés, sokkolás és az autótöltés kerüljön 17 óra elé vagy 22 óra utánra. A hűtők folyamatosan mennek, velük nincs teendő.</div></div>
+      <div class="card"><h3>Más tarifák, összehasonlításhoz</h3>
+        <ul class="list">
+          <li><span><b>Napkelte</b><br><span class="muted">márc.–okt., 9–17 óra: 30% kedvezmény</span></span></li>
+          <li><span><b>Hétvége</b><br><span class="muted">péntek 22:00 – hétfő 5:00: 30% kedvezmény</span></span></li>
+        </ul>
+        <div class="calc"><span class="tag t-est">Becslés</span> Az elmúlt 12 hónap okosmérő-adatai alapján a Ritmus illik hozzátok a legjobban. A Hétvége akkor érné meg, ha a fogyasztásotok több mint 40%-a hétvégére esne.</div></div>
+    </div>
+    <nav class="nav" data-active="day"></nav>
+  </section>
+
+  <!-- 3 PLAN / DECISION -->
+  <section class="screen" id="s-plan">
+    <div class="top"><button class="back" onclick="go('s-home')">‹</button><h2>Átidőzítési javaslat</h2></div>
+    <div class="scroll">
+      <div class="card">
+        <div class="muted">Holnap · csütörtök</div>
+        <h3 style="font-size:18px;margin-top:2px">Karácsonyi bejgli-sütés</h3>
+        <p class="muted" style="margin-top:4px">Tervezett: <b>15:00–20:00</b>. Ebből <b style="color:var(--bad)">3 óra (17–20) drága sávban</b> fut.</p>
+        <div class="chips" style="margin-top:10px"><span class="chip">2 × elektromos kemence</span><span class="chip">1 × sokkolóhűtő</span><span class="chip">~140 kWh <span class="tag t-est" style="padding:0 4px">becslés</span></span></div>
+      </div>
+      <p class="muted" style="margin:4px 4px 8px"><b>Válassz időpontot</b> · csak a műszakidőn (5–19) belüli ablakokat mutatjuk</p>
+      <button class="opt sel" data-opt="A" onclick="pick(this)">
+        <div class="h"><span>11:00–16:00</span><span class="save">~2 800 Ft</span></div>
+        <div class="s"><span class="tag t-rec">Ajánlott</span> Teljesen kedvező sávban · belefér a nappali műszakba</div>
+      </button>
+      <button class="opt" data-opt="B" onclick="pick(this)">
+        <div class="h"><span>14:00–19:00</span><span class="save">~900 Ft</span></div>
+        <div class="s">Kisebb változtatás · még 2 óra drága sávban</div>
+      </button>
+      <button class="opt" data-opt="C" onclick="pick(this)">
+        <div class="h"><span>Marad 15:00–20:00</span><span style="color:var(--ink2);font-weight:700">0 Ft</span></div>
+        <div class="s">Becsült költség ~11 450 Ft</div>
+      </button>
+      <details class="card" style="padding:12px 16px">
+        <summary>Miért ennyi? Honnan tudjuk? ›</summary>
+        <div class="calc">
+          <span class="tag t-fact">Tény</span> Ritmus zónák, energiadíj: kedvező 62 Ft/kWh, drága 95 Ft/kWh*<br>
+          <span class="tag t-est">Becslés</span> 140 kWh a legutóbbi 4 hasonló sütés okosmérő-adatai alapján (±15%)<br>
+          <b>Számítás:</b> 3 óra × 28 kWh × (95 − 62) Ft ≈ <b>2 770 Ft</b><br>
+          <span class="muted">*Illusztratív nettó energiadíj; a rendszer- és hálózati díjak nem változnak.</span>
+        </div>
+      </details>
+      <button class="btn" id="planBtn" onclick="confirmPlan()">Átidőzítem 11:00-ra</button>
+      <button class="btn sec" onclick="go('s-home')">Most nem</button>
+    </div>
+  </section>
+
+  <!-- 4 CONFIRM -->
+  <section class="screen" id="s-confirm">
+    <div class="scroll" style="padding-top:20px">
+      <div class="check">✓</div>
+      <h2 class="center" style="font-size:22px" id="cf-title">Kész! Holnap 11:00</h2>
+      <p class="center muted" style="margin:6px 20px 20px" id="cf-sub">Bejgli-sütés 11:00–16:00 · várható megtakarítás ~2 800 Ft (becslés)</p>
+      <div class="card">
+        <ul class="list">
+          <li><span>🔔 Emlékeztető</span><b>holnap 10:30 · push</b></li>
+          <li><span>📊 Eredmény</span><b>péntek reggel</b></li>
+          <li><span>👩‍🍳 Műszakvezető</span><b>Gábor értesítve</b></li>
+        </ul>
+        <p class="muted" style="margin-top:8px">A tényleges megtakarítást akkor mutatjuk, amikor beérkezik az okosmérő napi adata (másnap).</p>
+      </div>
+      <button class="btn" onclick="go('s-home')">Vissza a kezdőlapra</button>
+      <button class="btn sec" onclick="go('s-save')">Ugrás péntek reggelre (demó) ›</button>
+    </div>
+  </section>
+
+  <!-- 5 SAVINGS / FEEDBACK -->
+  <section class="screen" id="s-save">
+    <div class="top"><h2>Megtakarítás</h2></div>
+    <div class="scroll">
+      <div class="banner">📬 <b>Péntek 7:00</b> · Tegnapi átidőzítés: <b>2 640 Ft</b> tényleges megtakarítás. A becslés 2 800 Ft volt (−6%).</div>
+      <div class="card">
+        <div class="row between"><span class="muted">November eddig</span><span class="tag t-act">Tényleges</span></div>
+        <div class="big" style="color:var(--good)">9 860 Ft</div>
+        <p class="muted">5 átidőzítésből · okosmérő-adat alapján, a Ritmus zónadíjakkal számolva</p>
+        <div class="bars"><div style="height:32%"><span>1 450</span></div><div style="height:44%"><span>2 010</span></div><div style="height:42%"><span>1 890</span></div><div style="height:100%"><span>4 510</span></div></div>
+        <div class="hours" style="justify-content:space-around"><span>1. hét</span><span>2. hét</span><span>3. hét</span><span>4. hét (eddig)</span></div>
+      </div>
+      <div class="card">
+        <h3>Átidőzítések</h3>
+        <ul class="list">
+          <li><span>nov. 26. · Bejgli-sütés<br><span class="muted">15:00 → 11:00</span></span><span><b>2 640 Ft</b> <span class="tag t-act">tény</span></span></li>
+          <li><span>nov. 19. · Kenyér, nagy tétel<br><span class="muted">16:00 → 12:00</span></span><span><b>1 890 Ft</b> <span class="tag t-act">tény</span></span></li>
+          <li><span>dec. 3. · Bejgli-sütés<br><span class="muted">ütemezve 11:00</span></span><span><b>~2 800 Ft</b> <span class="tag t-est">becsl.</span></span></li>
+        </ul>
+      </div>
+      <button class="card" style="width:100%;text-align:left" onclick="go('s-bills')"><b>Hol látszik ez a számlán? ›</b><p class="muted">A novemberi fogyasztás a decemberben kiállított számlán jelenik meg, a kedvezőbb zónadíjakkal.</p></button>
+    </div>
+    <nav class="nav" data-active="save"></nav>
+  </section>
+
+  <!-- 6 BILLS -->
+  <section class="screen" id="s-bills">
+    <div class="top"><h2>Számlák</h2></div>
+    <div class="scroll">
+      <div class="card" id="bill-open" style="border:2px solid var(--ink)">
+        <div class="row between"><span class="muted">Novemberi számla · 2026/11-0042</span><span class="pill p-mid" id="bill-st">Nyitott</span></div>
+        <div class="big" style="margin-top:4px">486 320 Ft</div>
+        <ul class="list" style="margin-top:6px">
+          <li><span class="muted">Fizetési határidő</span><b>dec. 8. (11 nap)</b></li>
+          <li><span class="muted">Kiállítva</span><span>nov. 20.</span></li>
+          <li><span class="muted">Fogyasztás</span><span>5 180 kWh <span class="tag t-fact">tény</span></span></li>
+        </ul>
+        <button class="btn" id="payBtn" onclick="go('s-pay')">Fizetés</button>
+        <button class="btn sec">PDF letöltése</button>
+      </div>
+      <div class="card">
+        <div class="row between"><h3>Decemberi számla előrejelzés</h3><span class="tag t-est">Becslés</span></div>
+        <p class="big" style="font-size:22px">~540 000 Ft</p>
+        <p class="muted">+11% a novemberihez képest (karácsonyi szezon). A tervezett átidőzítésekkel ~525 000 Ft.</p>
+      </div>
+      <div class="card">
+        <h3>Korábbi számlák</h3>
+        <ul class="list">
+          <li><span>Október<br><span class="muted">fizetve okt. 30.</span></span><span><b>452 180 Ft</b> <span class="pill p-good">Fizetve</span></span></li>
+          <li><span>Szeptember<br><span class="muted">fizetve szept. 28.</span></span><span><b>431 900 Ft</b> <span class="pill p-good">Fizetve</span></span></li>
+          <li><span>Augusztus<br><span class="muted">fizetve aug. 29.</span></span><span><b>468 540 Ft</b> <span class="pill p-good">Fizetve</span></span></li>
+        </ul>
+      </div>
+    </div>
+    <nav class="nav" data-active="bills"></nav>
+  </section>
+
+  <!-- 7 PAY -->
+  <section class="screen" id="s-pay">
+    <div class="top"><button class="back" onclick="go('s-bills')">‹</button><h2>Számla kifizetése</h2></div>
+    <div class="scroll">
+      <div class="card">
+        <ul class="list">
+          <li><span class="muted">Számla</span><b>2026/11-0042</b></li>
+          <li><span class="muted">Fizető</span><span>Kovács Pékség Kft.</span></li>
+          <li><span class="muted">Határidő</span><span>dec. 8.</span></li>
+          <li><span class="muted">Fizetendő</span><b style="font-size:20px">486 320 Ft</b></li>
+        </ul>
+      </div>
+      <p class="muted" style="margin:4px 4px 8px"><b>Fizetési mód</b></p>
+      <button class="opt sel" onclick="pick(this)"><div class="h"><span>Mentett céges kártya</span></div><div class="s">Bankkártya •••• (a fizetési szolgáltatónál tárolva)</div></button>
+      <button class="opt" onclick="pick(this)"><div class="h"><span>Átutalás QR-kóddal</span></div><div class="s">Banki appból, 1–2 munkanap a jóváírás</div></button>
+      <button class="opt" onclick="pick(this)"><div class="h"><span>Csoportos beszedés beállítása</span></div><div class="s">A jövőben automatikusan, határidőre</div></button>
+      <p class="muted" style="margin:6px 4px">🔒 A fizetést a fizetési szolgáltató biztonságos felületén, a bankod által kért erős ügyfél-hitelesítéssel hagyod jóvá.</p>
+      <button class="btn" onclick="pay()">486 320 Ft kifizetése</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-paying">
+    <div class="scroll"><div class="spinner"></div><h2 class="center">Fizetés folyamatban…</h2><p class="center muted" style="margin-top:6px">Megerősítés a bankodtól</p></div>
+  </section>
+
+  <section class="screen" id="s-paid">
+    <div class="scroll" style="padding-top:20px">
+      <div class="check">✓</div>
+      <h2 class="center" style="font-size:22px">Sikeres fizetés</h2>
+      <p class="center muted" style="margin:6px 20px 20px">486 320 Ft · Novemberi számla</p>
+      <div class="card">
+        <ul class="list">
+          <li><span class="muted">Státusz</span><span class="pill p-good">Fizetve · visszaigazolva</span></li>
+          <li><span class="muted">Időpont</span><span>2026. nov. 27. 7:04</span></li>
+          <li><span class="muted">Tranzakció-azonosító</span><span>TX-8F31-22A7</span></li>
+          <li><span class="muted">Nyugta</span><span>e-mailben elküldve</span></li>
+        </ul>
+      </div>
+      <button class="btn" onclick="go('s-home')">Kész</button>
+      <button class="btn sec">Csoportos beszedés beállítása legközelebbre</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="s-settings">
+    <div class="top"><button class="back" onclick="go('s-home')">‹</button><h2>Értesítések és preferenciák</h2></div>
+    <div class="scroll">
+      <div class="card">
+        <h3>Mikor szóljunk?</h3>
+        <ul class="list">
+          <li><span>Drága időszak érinti a tervedet<div class="chips"><span class="chip on">előző nap 18:00</span><span class="chip on">Push</span><span class="chip">min. 1 000 Ft</span></div></span><span class="sw"></span></li>
+          <li><span>Emlékeztető az új időpont előtt<div class="chips"><span class="chip on">30 perccel</span><span class="chip on">Push</span></div></span><span class="sw"></span></li>
+          <li><span>Heti kedvező lehetőségek<div class="chips"><span class="chip on">hétfő 7:00</span><span class="chip on">E-mail</span></div></span><span class="sw"></span></li>
+          <li><span>Várhatóan magas számla<div class="chips"><span class="chip on">ha +10% felett</span><span class="chip on">Push</span><span class="chip on">E-mail</span></div></span><span class="sw"></span></li>
+          <li><span>Fizetési határidő<div class="chips"><span class="chip on">3 nappal előtte</span><span class="chip on">Push</span><span class="chip">határnapon SMS</span></div></span><span class="sw"></span></li>
+          <li><span>Minden árváltozás<div class="chips"><span class="chip">napi 3×</span></div></span><span class="sw off"></span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Szabályok</h3>
+        <ul class="list">
+          <li><span>Napi push-limit</span><b>max. 2</b></li>
+          <li><span>Csendes órák</span><b>21:00–04:30</b></li>
+          <li><span>Műszakidő (javaslatok csak ekkor)</span><b>05:00–19:00</b></li>
+          <li><span>Hétvégén</span><b>csak fizetési határidő</b></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Berendezések</h3>
+        <div class="chips"><span class="chip on">3 × kemence · időzíthető</span><span class="chip on">sokkolóhűtő · időzíthető</span><span class="chip on">EV-töltő · időzíthető</span><span class="chip">2 × hűtőkamra · folyamatos</span><span class="chip">klíma · folyamatos</span></div>
+      </div>
+      <div class="card"><h3>Hozzáférés</h3><p class="muted">Anna (operatív vezető): javaslatok, számlák, fizetés · Gábor (műszakvezető): csak ütemezés · Könyvelő: csak számlák</p></div>
+    </div>
+    <nav class="nav" data-active="settings"></nav>
+  </section>
+</div>
+
+<script>
+const NAV=[["home","⌂","Kezdőlap","s-home"],["day","▤","Árnaptár","s-day"],["save","↗","Megtakarítás","s-save"],["bills","₣","Számlák","s-bills"],["settings","⚙","Beállítások","s-settings"]];
+document.querySelectorAll('.nav').forEach(n=>{
+  const a=n.dataset.active;
+  n.innerHTML=NAV.map(([k,i,l,s])=>`<button class="${k===a?'on':''}" onclick="go('${s}')"><span class="i">${k==='bills'?'🧾':i}</span>${l}</button>`).join('');
+});
+const clocks={'s-lock':'18:00','s-later':'18:00','s-home':'18:01','s-day':'18:01','s-tariff':'18:02','s-plan':'18:02','s-confirm':'18:03','s-save':'7:02','s-bills':'7:03','s-pay':'7:03','s-paying':'7:04','s-paid':'7:04','s-settings':'18:05'};
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+  document.getElementById('clock').textContent=clocks[id]||'18:00';
+  document.getElementById('sb').style.color=(id==='s-lock'||id==='s-later')?'#fff':'';
+  document.querySelectorAll('#steps button').forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+  const sc=document.querySelector('#'+id+' .scroll'); if(sc) sc.scrollTop=0;
+}
+let choice='A';
+const OPTS={A:['11:00','11:00–16:00','~2 800 Ft'],B:['14:00','14:00–19:00','~900 Ft']};
+function pick(el){
+  el.parentElement.querySelectorAll('.opt').forEach(o=>{if(o.parentElement===el.parentElement)o.classList.remove('sel')});
+  el.classList.add('sel');
+  if(el.dataset.opt){choice=el.dataset.opt;
+    document.getElementById('planBtn').textContent= choice==='C'?'Marad az eredeti időpont':'Átidőzítem '+OPTS[choice][0]+'-ra';}
+}
+function confirmPlan(){
+  if(choice==='C'){go('s-home');return;}
+  const [t,w,s]=OPTS[choice];
+  document.getElementById('cf-title').textContent='Kész! Holnap '+t;
+  document.getElementById('cf-sub').textContent='Bejgli-sütés '+w+' · várható megtakarítás '+s+' (becslés)';
+  document.getElementById('todo').style.display='none';
+  const d=document.getElementById('home-done'); d.style.display='block';
+  d.querySelector('b').textContent='✓ Holnap '+t+' – bejgli-sütés';
+  d.querySelector('p').textContent='Emlékeztető 30 perccel előtte. Várható megtakarítás '+s+' (becslés).';
+  go('s-confirm');
+}
+function pay(){
+  go('s-paying');
+  setTimeout(()=>{
+    go('s-paid');
+    document.getElementById('bill-st').textContent='Fizetve';document.getElementById('bill-st').className='pill p-good';
+    document.getElementById('payBtn').style.display='none';
+    document.getElementById('home-bill').textContent='0 Ft';
+    document.getElementById('home-bill-st').textContent='Minden rendezve';document.getElementById('home-bill-st').className='pill p-good';
+  },1400);
+}
+document.querySelectorAll('#steps button').forEach(b=>b.onclick=()=>go(b.dataset.go));
+document.getElementById('wf').onchange=e=>document.body.classList.toggle('wf',e.target.checked);
+const q=new URLSearchParams(location.search);
+if(q.get('wf')) {document.body.classList.add('wf');document.getElementById('wf').checked=true;}
+go(q.get('s')||'s-lock');
+</script>
+</body>
+</html>
